@@ -1,0 +1,516 @@
+#!/usr/bin/env node
+/* =========================================================================
+ *  BIRTHDAY WISHES PROGRAM
+ *  -------------------------------------------------------------------------
+ *  A fun, dependency-free Node.js program that:
+ *    - Asks for a name, birth date, relationship and tone
+ *    - Calculates age, zodiac sign, weekday and days until next birthday
+ *    - Plays an animated ASCII birthday cake with confetti
+ *    - Generates personalised wishes, poems, quotes and fun facts
+ *
+ *  Run:   node birthday_wishes.js
+ *  Quick: node birthday_wishes.js --name Riya --date 2000-11-05 --tone funny
+ * ========================================================================= */
+
+"use strict";
+const readline = require("readline");
+const fs = require("fs");
+const path = require("path");
+
+// ----- Terminal Colors -----
+const C = {
+  reset: "\x1b[0m",
+  bold: "\x1b[1m",
+  dim: "\x1b[2m",
+  red: "\x1b[31m",
+  green: "\x1b[32m",
+  yellow: "\x1b[33m",
+  blue: "\x1b[34m",
+  magenta: "\x1b[35m",
+  cyan: "\x1b[36m",
+  white: "\x1b[37m",
+};
+const RAINBOW = [C.red, C.yellow, C.green, C.cyan, C.blue, C.magenta];
+function paint(text, color) {
+  return `${color}${text}${C.reset}`;
+}
+function rainbow(text) {
+  let i = 0;
+  return [...text]
+    .map((ch) => (ch === " " ? ch : paint(ch, RAINBOW[i++ % RAINBOW.length])))
+    .join("");
+}
+
+// ----- Data: Wishes, Poems, Quotes, Facts -----
+const WISHES = {
+  heartfelt: [
+    "Happy Birthday, {name}! May this year bring you peace, joy, and everything your heart quietly hopes for.",
+    "{name}, you make the world brighter just by being in it. Wishing you a day as wonderful as you are.",
+    "On your special day, {name}, I hope you feel every bit of the love you give to others.",
+    "Another year of you is a gift to everyone who knows you, {name}. Happy Birthday!",
+    "May every dream you hold close come true this year, {name}. You truly deserve it.",
+  ],
+  funny: [
+    "Happy Birthday, {name}! You're not old, you're just a limited edition classic.",
+    "{name}, at {age} you're finally old enough to know better, and still young enough to ignore it.",
+    "Congratulations, {name}! You've survived another trip around the sun. The sun says hi.",
+    "Don't count the candles, {name}. Just enjoy the glow, the fire department isn't here yet.",
+    "{name}, you're like a fine wine: you've got character, and you give everyone a headache after midnight.",
+  ],
+  formal: [
+    "Dear {name}, please accept my warmest wishes for a very happy birthday.",
+    "Wishing you continued success, good health, and happiness in the year ahead, {name}.",
+    "On the occasion of your birthday, {name}, I extend my sincere congratulations and best wishes.",
+    "May this milestone of {age} years open new doors of opportunity for you, {name}.",
+  ],
+  short: [
+    "Happy Birthday, {name}! 🎉",
+    "Cheers to you, {name}! 🥂",
+    "Many happy returns, {name}! 🎂",
+    "Level {age} unlocked, {name}! 🎮",
+  ],
+};
+const RELATION_OPENERS = {
+  friend: ["Hey buddy,", "To my amazing friend,", "Dear friend,"],
+  family: ["To my dear family member,", "With all my love,", "Dear one,"],
+  partner: ["To my love,", "My dearest,", "To the one who owns my heart,"],
+  colleague: ["Dear colleague,", "To a wonderful teammate,", "Hello and best wishes,"],
+  boss: ["Respected sir/madam,", "Dear manager,", "With sincere regards,"],
+  other: ["Hello,", "Greetings,", "Dear friend,"],
+};
+const POEMS = [
+  ["Candles glow and balloons rise,", "Joy is dancing in your eyes,", "Another year, another chance,", "To sing, to laugh, and to dance!"],
+  ["Roses are red, the sky is blue,", "The world is brighter because of you,", "So blow the candles, make a wish,", "And enjoy a big slice, dish by dish!"],
+];
+const QUOTES = [
+  "\"Age is merely the number of years the world has been enjoying you.\"",
+  "\"The more you praise and celebrate your life, the more there is in life to celebrate.\" - Oprah Winfrey",
+  "\"You don't get older, you get better.\" - Shirley Bassey",
+  "\"Every birthday is a chance to begin again.\"",
+];
+const FUN_FACTS = [
+  "The song 'Happy Birthday to You' is one of the most recognised songs in the English language.",
+  "Birthday candles are said to come from ancient Greeks who offered round cakes to the moon goddess.",
+  "The most common birthday worldwide falls in September.",
+  "In some cultures, people pull the birthday child's ears once for each year of age.",
+];
+const ZODIAC = [
+  { sign: "Capricorn", symbol: "♑", start: [12, 22], trait: "ambitious and disciplined" },
+  { sign: "Aquarius", symbol: "♒", start: [1, 20], trait: "creative and independent" },
+  { sign: "Pisces", symbol: "♓", start: [2, 19], trait: "kind and imaginative" },
+  { sign: "Aries", symbol: "♈", start: [3, 21], trait: "bold and energetic" },
+  { sign: "Taurus", symbol: "♉", start: [4, 20], trait: "reliable and patient" },
+  { sign: "Gemini", symbol: "♊", start: [5, 21], trait: "curious and witty" },
+  { sign: "Cancer", symbol: "♋", start: [6, 21], trait: "caring and intuitive" },
+  { sign: "Leo", symbol: "♌", start: [7, 23], trait: "confident and generous" },
+  { sign: "Virgo", symbol: "♍", start: [8, 23], trait: "thoughtful and precise" },
+  { sign: "Libra", symbol: "♎", start: [9, 23], trait: "fair and charming" },
+  { sign: "Scorpio", symbol: "♏", start: [10, 23], trait: "passionate and determined" },
+  { sign: "Sagittarius", symbol: "♐", start: [11, 22], trait: "adventurous and optimistic" },
+];
+const MONTHS = [ "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December" ];
+const WEEKDAYS = [ "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday" ];
+
+// ----- Small Utilities -----
+function pick(list) {
+  return list[Math.floor(Math.random() * list.length)];
+}
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+function capitalize(str) {
+  return str ? str.charAt(0).toUpperCase() + str.slice(1) : str;
+}
+function ordinal(n) {
+  const s = ["th", "st", "nd", "rd"];
+  const v = n % 100;
+  return n + (s[(v - 20) % 10] || s[v] || s[0]);
+}
+function fill(template, data) {
+  return template.replace(/\{(\w+)\}/g, (_, key) =>
+    data[key] !== undefined ? data[key] : `{${key}}`
+  );
+}
+function stripAnsi(str) {
+  return str.replace(/\x1b\[[0-9;]*m/g, "");
+}
+function padRight(str, width) {
+  const visible = stripAnsi(str).length;
+  return str + " ".repeat(Math.max(0, width - visible));
+}
+function wrapText(text, width) {
+  const words = text.split(/\s+/);
+  const lines = [];
+  let line = "";
+  for (const word of words) {
+    if ((line + " " + word).trim().length > width) {
+      lines.push(line.trim());
+      line = word;
+    } else {
+      line += " " + word;
+    }
+  }
+  if (line.trim()) lines.push(line.trim());
+  return lines;
+}
+function centerText(text, width) {
+  const len = stripAnsi(text).length;
+  const left = Math.max(0, Math.floor((width - len) / 2));
+  return " ".repeat(left) + text;
+}
+
+// ----- Date Logic -----
+function parseDate(input) {
+  // Accepts YYYY-MM-DD or DD/MM/YYYY or DD-MM-YYYY
+  const text = String(input).trim();
+  let y, m, d;
+  let match = text.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  if (match) {
+    [, y, m, d] = match.map(Number);
+  } else {
+    match = text.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})$/);
+    if (!match) return null;
+    [, d, m, y] = match.map(Number);
+  }
+  const date = new Date(y, m - 1, d);
+  const valid =
+    date.getFullYear() === y && date.getMonth() === m - 1 && date.getDate() === d;
+  if (!valid || date > new Date()) return null;
+  return date;
+}
+function calcAge(birth, today = new Date()) {
+  let age = today.getFullYear() - birth.getFullYear();
+  const beforeBirthday =
+    today.getMonth() < birth.getMonth() ||
+    (today.getMonth() === birth.getMonth() && today.getDate() < birth.getDate());
+  if (beforeBirthday) age--;
+  return age;
+}
+function nextBirthday(birth, today = new Date()) {
+  const start = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  let next = new Date(start.getFullYear(), birth.getMonth(), birth.getDate());
+  if (next < start) {
+    next = new Date(start.getFullYear() + 1, birth.getMonth(), birth.getDate());
+  }
+  return next;
+}
+function daysUntilBirthday(birth, today = new Date()) {
+  const start = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const next = nextBirthday(birth, today);
+  return Math.round((next - start) / 86400000);
+}
+function isBirthdayToday(birth, today = new Date()) {
+  return birth.getMonth() === today.getMonth() && birth.getDate() === today.getDate();
+}
+function getZodiac(birth) {
+  const month = birth.getMonth() + 1;
+  const day = birth.getDate();
+  let result = ZODIAC[0];
+  for (const z of ZODIAC) {
+    const [zm, zd] = z.start;
+    if (month > zm || (month === zm && day >= zd)) result = z;
+  }
+  // Dates before Jan 20 belong to Capricorn
+  if (month === 1 && day < 20) result = ZODIAC[0];
+  return result;
+}
+function totalDaysLived(birth, today = new Date()) {
+  return Math.floor((today - birth) / 86400000);
+}
+function formatDate(date) {
+  return `${WEEKDAYS[date.getDay()]}, ${date.getDate()} ${MONTHS[date.getMonth()]} ${date.getFullYear()}`;
+}
+
+// ----- Ascii Cake + Animation -----
+function buildCake(candles, flameOn) {
+  const count = Math.min(Math.max(candles, 1), 9);
+  const flame = flameOn ? paint(")", C.yellow) : " ";
+  const smoke = flameOn ? " " : paint("~", C.dim);
+  const top = flameOn ? flame : smoke;
+  const candleTop = Array(count).fill(top).join("   ");
+  const candleBody = Array(count).fill(paint("|", C.white)).join("   ");
+  const innerWidth = count * 4 + 4;
+  const border = "_".repeat(innerWidth);
+  const lines = [
+    "  " + candleTop,
+    "  " + candleBody,
+    paint(" " + border, C.magenta),
+    paint("|" + " ".repeat(innerWidth) + "|", C.magenta),
+    paint("|" + rainbow("~".repeat(innerWidth)) + "|", C.magenta),
+    paint("|" + " ".repeat(innerWidth) + "|", C.red),
+    paint("|" + "*".repeat(innerWidth) + "|", C.yellow),
+    paint("|" + "_".repeat(innerWidth) + "|", C.red),
+    paint("\\" + "=".repeat(innerWidth) + "/", C.cyan),
+  ];
+  return lines;
+}
+async function animateCake(age) {
+  const candles = Math.min(age, 9);
+  console.log();
+  for (let i = 0; i < 4; i++) {
+    const cake = buildCake(candles, i % 2 === 0);
+    process.stdout.write(cake.join("\n") + "\n");
+    await sleep(350);
+    process.stdout.write(`\x1b[${cake.length}A`); // move cursor up
+  }
+  // Final frame: candles blown out
+  const final = buildCake(candles, false);
+  console.log(final.join("\n"));
+  console.log();
+  console.log(centerText(paint("*poof!* All candles blown out. Wish granted!", C.yellow), 50));
+  console.log();
+}
+
+// ----- Confetti + Banner -----
+async function confetti(rounds = 6, width = 60) {
+  const bits = ["*", "o", "+", "x", "~", "•", "^"];
+  for (let r = 0; r < rounds; r++) {
+    let line = "";
+    for (let i = 0; i < width; i++) {
+      line += Math.random() < 0.25 ? paint(pick(bits), pick(RAINBOW)) : " ";
+    }
+    console.log(line);
+    await sleep(90);
+  }
+}
+function banner(name) {
+  const title = `HAPPY BIRTHDAY ${name.toUpperCase()}!`;
+  const width = title.length + 8;
+  const pad = " ".repeat(4);
+  console.log("\n" + paint("╔" + "═".repeat(width) + "╗", C.magenta));
+  console.log(paint("║", C.magenta) + pad + rainbow(title) + pad + paint("║", C.magenta));
+  console.log(paint("╚" + "═".repeat(width) + "╝", C.magenta) + "\n");
+}
+
+// ----- Wish Generation -----
+function buildWish(profile) {
+  const { name, age, tone, relationship } = profile;
+  const pool = WISHES[tone] || WISHES.heartfelt;
+  const opener = pick(RELATION_OPENERS[relationship] || RELATION_OPENERS.other);
+  const body = fill(pick(pool), { name, age: ordinal(age).replace(/\D+$/, "") });
+  return `${opener} ${body}`;
+}
+function buildManyWishes(profile, count = 3) {
+  const wishes = new Set();
+  let guard = 0;
+  while (wishes.size < count && guard++ < 50) {
+    wishes.add(buildWish(profile));
+  }
+  return [...wishes];
+}
+function buildZodiacLine(birth, name) {
+  const z = getZodiac(birth);
+  return `${z.symbol} As a ${z.sign}, ${name} is ${z.trait}. The stars say this year will be special!`;
+}
+function buildMilestoneLine(age) {
+  const special = {
+    18: "Welcome to adulthood! Taxes await, but so does freedom.",
+    21: "Twenty-one! A truly golden milestone.",
+    30: "Thirty and thriving! The best chapters are ahead.",
+    50: "Fifty! Half a century of awesome.",
+  };
+  if (age >= 100) return "A CENTURY! You are a living legend!";
+  return special[age] || "Every year is a milestone when you live it well.";
+}
+
+// ----- Greeting Card -----
+function buildCard(profile, birth) {
+  const width = 56;
+  const inner = width - 4;
+  const lines = [];
+  const add = (text = "", align = "left") => {
+    const wrapped = text ? wrapText(stripAnsi(text), inner) : [""];
+    for (const w of wrapped) {
+      const content = align === "center" ? centerText(w, inner) : w;
+      lines.push("║ " + padRight(content, inner) + " ║");
+    }
+  };
+  lines.push("╔" + "═".repeat(width - 2) + "╗");
+  add("", "center");
+  add(`🎂  HAPPY ${ordinal(profile.age)} BIRTHDAY!  🎂`, "center");
+  add(`~ ${profile.name} ~`, "center");
+  add("", "center");
+  lines.push("╟" + "─".repeat(width - 2) + "╢");
+  add("");
+  add(buildWish(profile));
+  add("");
+  add(buildZodiacLine(birth, profile.name));
+  add("");
+  add(buildMilestoneLine(profile.age));
+  add("");
+  lines.push("╟" + "─".repeat(width - 2) + "╢");
+  add("");
+  for (const poemLine of pick(POEMS)) add(poemLine, "center");
+  add("");
+  add(pick(QUOTES), "center");
+  add("");
+  lines.push("╟" + "─".repeat(width - 2) + "╢");
+  add(`Date: ${formatDate(birth)}`);
+  add(`Days lived: ${totalDaysLived(birth).toLocaleString()}`);
+  add(`Next birthday in: ${daysUntilBirthday(birth)} day(s)`);
+  add("");
+  add("With love and best wishes!", "center");
+  lines.push("╚" + "═".repeat(width - 2) + "╝");
+  return lines.join("\n");
+}
+function saveCard(card, name) {
+  const safe = name.replace(/[^a-z0-9]/gi, "_").toLowerCase() || "friend";
+  const file = path.join(process.cwd(), `birthday_card_${safe}.txt`);
+  fs.writeFileSync(file, card, "utf8");
+  return file;
+}
+
+// ----- Input Helpers (Readline) -----
+function createPrompt() {
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
+  const ask = (question) =>
+    new Promise((resolve) => rl.question(question, (a) => resolve(a.trim())));
+  return { rl, ask };
+}
+async function askName(ask) {
+  while (true) {
+    const name = await ask(paint("Whose birthday is it? (name): ", C.cyan));
+    if (name.length >= 1 && name.length <= 40) return capitalize(name);
+    console.log(paint("Please enter a name between 1 and 40 characters.", C.red));
+  }
+}
+async function askDate(ask) {
+  while (true) {
+    const text = await ask(paint("Birth date (YYYY-MM-DD or DD/MM/YYYY): ", C.cyan));
+    const date = parseDate(text);
+    if (date) return date;
+    console.log(paint("That doesn't look like a valid past date. Try again.", C.red));
+  }
+}
+async function askChoice(ask, label, options, fallback) {
+  const list = options.join(" / ");
+  while (true) {
+    const answer = (await ask(paint(`${label} [${list}] (default ${fallback}): `, C.cyan)))
+      .toLowerCase();
+    if (!answer) return fallback;
+    if (options.includes(answer)) return answer;
+    console.log(paint(`Please choose one of: ${list}`, C.red));
+  }
+}
+
+// ----- Command Line Arguments -----
+function parseArgs(argv) {
+  const args = {};
+  for (let i = 2; i < argv.length; i++) {
+    const token = argv[i];
+    if (token.startsWith("--")) {
+      const key = token.slice(2);
+      const next = argv[i + 1];
+      if (next && !next.startsWith("--")) {
+        args[key] = next;
+        i++;
+      } else {
+        args[key] = true;
+      }
+    }
+  }
+  return args;
+}
+
+// ----- Main Flow -----
+async function celebrate(profile, birth, options = {}) {
+  const today = new Date();
+  const fast = Boolean(options.fast);
+  banner(profile.name);
+  if (!fast) await confetti();
+  if (isBirthdayToday(birth, today)) {
+    console.log(paint("🎉 It's their birthday TODAY! Let's celebrate! 🎉", C.green));
+  } else {
+    const days = daysUntilBirthday(birth, today);
+    console.log(
+      paint(`Their next birthday is in ${days} day(s), on ${formatDate(nextBirthday(birth, today))}.`, C.yellow)
+    );
+  }
+  console.log();
+  console.log(paint(`Age: ${profile.age}   Zodiac: ${getZodiac(birth).symbol} ${getZodiac(birth).sign}`, C.cyan));
+  console.log(paint(`Born on a ${WEEKDAYS[birth.getDay()]}`, C.cyan));
+  if (!fast) await animateCake(profile.age);
+  else console.log(buildCake(profile.age, true).join("\n"));
+  console.log(paint("\nYour birthday wishes:\n", C.bold));
+  buildManyWishes(profile, 3).forEach((wish, i) => {
+    console.log(paint(`  ${i + 1}. `, C.magenta) + wish);
+  });
+  console.log(paint("\nA little poem:\n", C.bold));
+  for (const line of pick(POEMS)) {
+    console.log("   " + paint(line, C.green));
+    if (!fast) await sleep(250);
+  }
+  console.log();
+  console.log(paint("Quote: ", C.bold) + pick(QUOTES));
+  console.log(paint("Fun fact: ", C.bold) + pick(FUN_FACTS));
+  console.log();
+  const card = buildCard(profile, birth);
+  console.log(card);
+  console.log();
+  if (options.save) {
+    const file = saveCard(card, profile.name);
+    console.log(paint(`Card saved to: ${file}`, C.green));
+  }
+  return card;
+}
+async function interactive() {
+  const { rl, ask } = createPrompt();
+  console.log();
+  console.log(rainbow("=== Welcome to the Birthday Wishes Program! ==="));
+  console.log();
+  try {
+    let again = true;
+    while (again) {
+      const name = await askName(ask);
+      const birth = await askDate(ask);
+      const relationship = await askChoice(
+        ask,
+        "Relationship",
+        Object.keys(RELATION_OPENERS),
+        "friend"
+      );
+      const tone = await askChoice(ask, "Tone", Object.keys(WISHES), "heartfelt");
+      const profile = { name, age: calcAge(birth), tone, relationship };
+      const card = await celebrate(profile, birth);
+      const save = (await ask(paint("Save the card to a file? (y/n): ", C.cyan))).toLowerCase();
+      if (save === "y" || save === "yes") {
+        console.log(paint(`Saved: ${saveCard(card, name)}`, C.green));
+      }
+      const more = (await ask(paint("Make another wish? (y/n): ", C.cyan))).toLowerCase();
+      again = more === "y" || more === "yes";
+      console.log();
+    }
+    console.log(rainbow("Thanks for spreading joy! Goodbye! 🎈"));
+  } finally {
+    rl.close();
+  }
+}
+async function main() {
+  const args = parseArgs(process.argv);
+  if (args.name && args.date) {
+    const birth = parseDate(args.date);
+    if (!birth) {
+      console.error(paint("Invalid --date. Use YYYY-MM-DD or DD/MM/YYYY.", C.red));
+      process.exit(1);
+    }
+    const tone = WISHES[args.tone] ? args.tone : "heartfelt";
+    const relationship = RELATION_OPENERS[args.relation] ? args.relation : "friend";
+    const profile = {
+      name: capitalize(String(args.name)),
+      age: calcAge(birth),
+      tone,
+      relationship,
+    };
+    await celebrate(profile, birth, { save: args.save, fast: args.fast });
+    return;
+  }
+  await interactive();
+}
+
+main().catch((err) => {
+  console.error(paint(`Something went wrong: ${err.message}`, C.red));
+  process.exit(1);
+});
