@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Happy Birthday Abhisek ❤️</title>
+
+<style>
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', sans-serif;
+    background: linear-gradient(135deg, #ffe0ec, #ffc2d8, #fff0f5);
+    color: #8e3157;
+    text-align: center;
+    overflow-x: hidden;
+}
+
+section {
+    padding: 60px 20px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+h1 {
+    font-size: 42px;
+    margin-bottom: 20px;
+    animation: glow 2s infinite alternate;
+}
+
+h2 {
+    margin: 20px;
+}
+
+p {
+    font-size: 18px;
+    line-height: 1.8;
+    max-width: 600px;
+}
+
+@keyframes glow {
+    from { text-shadow: 0 0 5px white; }
+    to { text-shadow: 0 0 20px #ff4f91; }
+}
+
+.heart {
+    font-size: 65px;
+    animation: beat 1s infinite;
+}
+
+@keyframes beat {
+    50% { transform: scale(1.3); }
+}
+
+button {
+    background: #ff4f91;
+    color: white;
+    border: none;
+    padding: 14px 30px;
+    border-radius: 30px;
+    font-size: 17px;
+    cursor: pointer;
+    margin: 15px;
+    box-shadow: 0 5px 15px #d66b91;
+}
+
+button:hover {
+    background: #d93675;
+    transform: scale(1.05);
+}
+
+.card {
+    background: rgba(255,255,255,0.65);
+    padding: 30px;
+    border-radius: 25px;
+    max-width: 650px;
+    width: 95%;
+    box-shadow: 0 8px 25px #d98aa9;
+    margin: 20px;
+}
+
+.balloon {
+    position: fixed;
+    bottom: -100px;
+    font-size: 40px;
+    animation: fly 10s linear infinite;
+    z-index: -1;
+}
+
+@keyframes fly {
+    to {
+        transform: translateY(-120vh) rotate(30deg);
+    }
+}
+
+.gift {
+    font-size: 100px;
+    cursor: pointer;
+    transition: 0.5s;
+}
+
+.gift:hover {
+    transform: rotate(15deg) scale(1.2);
+}
+
+#surprise {
+    display: none;
+    font-size: 23px;
+    padding: 20px;
+}
+
+.cake {
+    font-size: 100px;
+    animation: dance 2s infinite;
+}
+
+@keyframes dance {
+    50% { transform: rotate(8deg); }
+}
+
+.cat {
+    font-size: 90px;
+    margin: 20px;
+}
+
+.photo {
+    width: 230px;
+    height: 230px;
+    border-radius: 50%;
+    border: 7px solid white;
+    object-fit: cover;
+    background: #ffc1d8;
+    box-shadow: 0 5px 20px #c46b8c;
+}
+
+footer {
+    padding: 30px;
+    background: #ffb4d0;
+    color: #8e3157;
+}
+
+.hidden {
+    display: none;
+}
+
+@media(max-width:600px) {
+    h1 { font-size: 32px; }
+    p { font-size: 16px; }
+}
+</style>
+</head>
+
+<body>
+
+<div class="balloon" style="left:10%">🎈</div>
+<div class="balloon" style="left:30%;animation-delay:2s">💗</div>
+<div class="balloon" style="left:50%;animation-delay:4s">🎈</div>
+<div class="balloon" style="left:70%;animation-delay:1s">💕</div>
+<div class="balloon" style="left:90%;animation-delay:3s">🎈</div>
+
+<section>
+    <div class="heart">❤️</div>
+    <h1>Happy Birthday!</h1>
+    <h1>Abhisek 🎂</h1>
+    <p>
+        Today is your day!
+        A day full of joy, love,
+        smiles and sweet memories.
+    </p>
+    <button onclick="goTo('welcome')">
+        Start Surprise 💌
+    </button>
+</section>
+
+<section id="welcome">
+    <div class="card">
+        <h1>Hey Abhisek! 💗</h1>
+        <p>
+            Some days are special.
+            Some people are special.
+            And today is special because
+            someone amazing was born.
+        </p>
+        <div class="cat">🐱</div>
+        <p>Sending you lots of love!</p>
+        <button onclick="goTo('memories')">
+            Next Surprise 🌸
+        </button>
+    </div>
+</section>
+
+<section id="memories">
+    <div class="card">
+        <h1>Sweet Memories 📸</h1>
+        <p>
+            Every smile is a story.
+            Every moment is a memory.
+            May your life be filled
+            with beautiful moments.
+        </p>
+
+        <img class="photo"
+        id="myPhoto"
+        src="https://placehold.co/300x300/ffc1d8/ffffff?text=Your+Photo"
+        alt="Birthday photo">
+
+        <p>Replace this photo with your favourite picture.</p>
+        <button onclick="goTo('cake')">
+            Let's Cut The Cake 🎂
+        </button>
+    </div>
+</section>
+
+<section id="cake">
+    <div class="card">
+        <h1>Make A Wish! ✨</h1>
+        <div class="cake">🎂</div>
+        <p>
+            Close your eyes.
+            Think of your biggest dream.
+            Make a wish!
+        </p>
+        <button onclick="wish()">
+            Blow The Candles 🕯️
+        </button>
+        <p id="wishText"></p>
+        <button onclick="goTo('gift')">
+            Open Your Gift 🎁
+        </button>
+    </div>
+</section>
+
+<section id="gift">
+    <div class="card">
+        <h1>A Gift For You!</h1>
+        <div class="gift" onclick="openGift()">
+            🎁
+        </div>
+
+        <p>Tap the gift to open it!</p>
+
+        <div id="surprise">
+            <h2>💖 Dear Abhisek 💖</h2>
+            <p>
+                May your days be bright.
+                May your dreams come true.
+                May your heart stay happy.
+                May you always find love.
+                May life give you the best.
+            </p>
+            <div class="heart">💗</div>
+            <h2>Happy Birthday!</h2>
+        </div>
+    </div>
+</section>
+
+<section>
+    <div class="card">
+        <h1>My Last Message 💌</h1>
+        <p>
+            New dreams.
+            New hopes.
+            New smiles.
+            New memories.
+        </p>
+        <br>
+        <h2>Stay Happy, Abhisek! ❤️</h2>
+        <div class="cat">🐱🎀</div>
+        <p>
+            You deserve all the happiness
+            in this beautiful world.
+        </p>
+        <button onclick="celebrate()">
+            Celebrate Again 🎉
+        </button>
+    </div>
+</section>
+
+<footer>
+    Made with ❤️ and lots of love.
+    <br>
+    A special birthday surprise for Abhisek.
+</footer>
+
+<script>
+function goTo(id) {
+    document.getElementById(id)
+    .scrollIntoView({
+        behavior: "smooth"
+    });
+}
+
+function wish() {
+    document.getElementById("wishText")
+    .innerHTML =
+    "✨ Your wish is sent to the stars! ✨";
+}
+
+function openGift() {
+    document.getElementById("surprise")
+    .style.display = "block";
+
+    document.querySelector(".gift")
+    .innerHTML = "💝";
+}
+
+function celebrate() {
+    for(let i = 0; i < 30; i++) {
+        let heart = document.createElement("div");
+
+        heart.innerHTML = ["❤️","💗","🎉","✨","💕"]
+        [Math.floor(Math.random()*5)];
+
+        heart.style.position = "fixed";
+        heart.style.left = Math.random()*100 + "vw";
+        heart.style.top = Math.random()*100 + "vh";
+        heart.style.fontSize = "30px";
+        heart.style.pointerEvents = "none";
+
+        document.body.appendChild(heart);
+
+        setTimeout(() => {
+            heart.remove();
+        }, 3000);
+    }
+}
+</script>
+
+</body>
+</html>
